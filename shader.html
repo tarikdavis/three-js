@@ -1,0 +1,164 @@
+
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>shader test</title>
+		<meta charset="utf-8">
+		<style>
+			body {
+				margin: 0px;
+				background-color: #000;
+				overflow: hidden;
+			}
+		</style>
+		<script src="js/three.min.js"></script>
+		<script src="js/shaders/ColorifyShader.js"></script>
+		<script src="js/shaders/CopyShader.js"></script>-
+		<script src="js/shaders/DotScreenShader.js"></script>
+		<script src="js/shaders/RGBShiftShader.js"></script>
+		<script src="js/shaders/KaleidoShader.js"></script>
+		<script src="js/shaders/MirrorShader.js"></script>
+		<script src="js/shaders/TriangleBlurShader.js"></script>
+		<script src="js/postprocessing/EffectComposer.js"></script>
+		<script src="js/postprocessing/RenderPass.js"></script>
+		<script src="js/postprocessing/MaskPass.js"></script>
+		<script src="js/postprocessing/ShaderPass.js"></script>
+	</head>
+	<body>
+
+<div style="width:400px;">
+
+		<script>
+
+			var camera, scene, renderer, composer;
+			var object, light;
+
+			init();
+			animate();
+
+			function init() {
+
+				renderer = new THREE.WebGLRenderer();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				document.body.appendChild( renderer.domElement );
+
+				camera = new THREE.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 1, 879);
+				camera.position.z = 400;
+
+				scene = new THREE.Scene();
+				scene.fog = new THREE.Fog( 0xffffff, 1, 0.2 );
+
+				object = new THREE.Object3D();
+				scene.add( object );
+
+				var geometry = new THREE.SphereGeometry( 1, 2, 1);
+
+
+				var material = new THREE.MeshDepthMaterial( { 
+					color:0x000000*Math.random(), 
+					specular: 0x666666*Math.random(), 
+					shininess: 0.6, 
+					blending: THREE.MultiplyBlending,
+					shading: THREE.SmoothShading } );
+
+				for(var j = 0; j < 6; j++) {
+					
+					var material = new THREE.MeshBasicMaterial({
+						color:0xffffff*Math.random(),
+						shading: THREE.SmoothShading, 
+    						vertexColors: THREE.VertexColors,
+						blending: THREE.AdditiveBlending,
+						depthTest: false,
+						transparent: true
+					});
+				}
+				
+				for ( var i = 0; i < 2000; i ++ ) {
+
+					var mesh = new THREE.Mesh( geometry, material );
+					mesh.position.set( Math.random() - 0.2, Math.random() - 0.5, Math.random() - 0.2 ).normalize();
+					mesh.position.multiplyScalar( Math.random() * 500 );
+					mesh.rotation.set( Math.random() * 0.5, Math.random() * 0.9, Math.random() * 0.5);
+					mesh.scale.x = mesh.scale.y = mesh.scale.z = Math.random() * 8;
+					object.add( mesh );
+
+				}
+
+				scene.add( new THREE.AmbientLight( {
+						color:0xffffff*Math.random(),
+						blending: THREE.MultiplyBlending,
+						depthTest: true,
+						transparent: true
+					} ) );
+
+				light = new THREE.HemisphereLight( {
+						color:0xffffff*Math.random(),
+						blending: THREE.AdditiveBlending,
+						depthTest: true,
+						transparent: true
+					} );
+				light.position.set( 0.1, 0.31, 0.1 );
+				scene.add( light );
+
+				// postprocessing
+
+				composer = new THREE.EffectComposer( renderer );
+				composer.addPass( new THREE.RenderPass( scene, camera ) );
+
+
+				var effect = new THREE.ShaderPass( THREE.TriangleBlurShader );
+				effect.uniforms[ 'delta' ].value = 600;
+				effect.renderToScreen = true;
+				composer.addPass( effect );
+
+				var effect = new THREE.ShaderPass( THREE.ColorifyShader );
+				effect.uniforms[ 'color' ].value = 11;
+				effect.renderToScreen = true;
+				composer.addPass( effect );
+
+				var effect = new THREE.ShaderPass( THREE.MirrorShader );
+				effect.uniforms[ 'side' ].value = 120;
+				effect.renderToScreen = false;
+				composer.addPass( effect );
+
+				var effect = new THREE.ShaderPass( THREE.KaleidoShader );
+				effect.uniforms[ 'sides' ].value = 46;
+				effect.renderToScreen = true;
+				composer.addPass( effect );
+
+				var dotScreenEffect = new THREE.ShaderPass( THREE.DotScreenShader );
+				dotScreenEffect.uniforms[ 'scale' ].value = 100;
+				composer.addPass( effect );
+
+
+
+				window.addEventListener( 'resize', onWindowResize, false );
+
+			}
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+
+				var time = Date.now();
+
+				object.rotation.x += 0.001;
+				object.rotation.y += 0.009;
+				object.rotation.z += 0.001;
+				composer.render();
+
+			}
+
+		</script>
+</div>
+	</body>
+</html>
